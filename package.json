@@ -1,0 +1,28 @@
+{
+  "name": "inkdrop-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "InkDrop - Ephemeral, multi-room real-time communication platform built on Next.js, Node.js + Socket.io, and Upstash Redis",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"cyan.bold,magenta.bold\" \"npm run dev --workspace=apps/server\" \"npm run dev --workspace=apps/client\"",
+    "dev:server": "npm run dev --workspace=apps/server",
+    "dev:client": "npm run dev --workspace=apps/client",
+    "build": "npm run build --workspace=apps/server && npm run build --workspace=apps/client",
+    "build:server": "npm run build --workspace=apps/server",
+    "build:client": "npm run build --workspace=apps/client",
+    "start": "npm run start --workspace=apps/server",
+    "start:client": "npm run start --workspace=apps/client",
+    "lint": "npm run lint --workspaces",
+    "typecheck": "npm run typecheck --workspace=apps/server && npm run typecheck --workspace=apps/client",
+    "test": "npm run test --workspace=apps/server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

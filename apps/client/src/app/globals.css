@@ -1,0 +1,320 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --water-deep: #05070C;
+  --water-shallow: #0A0F1A;
+  --surface-base: #0C121D;
+  --surface-elevated: #111A28;
+  --surface-card: rgba(14, 21, 33, 0.72);
+  --surface-border: rgba(150, 190, 255, 0.10);
+  --surface-border-hover: rgba(150, 190, 255, 0.24);
+  --paper-white: #EDE8DC;
+  --paper-muted: #7F8CA3;
+  --ink-indigo: #5B5BFF;
+  --ink-teal: #2DD4BF;
+  --ink-rose: #FF4D8D;
+  --font-sans: var(--font-body);
+  --ease-ripple: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur-ripple-click: 3000ms;
+  --dur-ripple-idle: 4200ms;
+}
+
+html.light {
+  --water-deep: #F8F9FA;
+  --water-shallow: #EDF1F7;
+  --surface-base: #FFFFFF;
+  --surface-elevated: #F1F4F9;
+  --surface-card: rgba(255, 255, 255, 0.90);
+  --surface-border: rgba(15, 23, 42, 0.12);
+  --surface-border-hover: rgba(15, 23, 42, 0.28);
+  --paper-white: #0A0E17;
+  --paper-muted: #4B5565;
+  --ink-indigo: #4338CA;
+  --ink-teal: #0F766E;
+  --ink-rose: #BE123C;
+}
+
+body {
+  color: var(--paper-white);
+  background-color: var(--water-deep);
+  background-image: radial-gradient(circle at 50% 0%, #0c1424 0%, #05070C 85%);
+  min-height: 100vh;
+  font-family: var(--font-body), system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  overflow-x: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+html.light body {
+  background-image: radial-gradient(circle at 50% 0%, #E9EEF5 0%, #F8F9FA 85%);
+}
+
+/* Custom selection in rich indigo ink */
+::selection {
+  background: rgba(91, 91, 255, 0.35);
+  color: #EDE8DC;
+}
+
+/* Water scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(127, 140, 163, 0.22);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 212, 191, 0.45);
+}
+
+/* Film grain / noise overlay */
+.ink-film-grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+}
+
+/* 
+ * Ink Water Ripple Animations
+ * Starts at scale(0) with ease-out cubic-bezier(0.25, 0.46, 0.45, 0.94) from frame 0.
+ * Smooth decelerating curve matching idle ambient ripples.
+ * Continuous gradual opacity decline with thinning stroke.
+ */
+@keyframes inkRipple1 {
+  0% {
+    transform: scale(0);
+    opacity: 0.38;
+    border-width: 2px;
+  }
+  40% {
+    opacity: 0.24;
+  }
+  75% {
+    opacity: 0.09;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+.animate-ink-ripple-1 {
+  animation: inkRipple1 var(--ripple-duration, var(--dur-ripple-click)) var(--ease-ripple) both;
+  animation-delay: 0ms;
+  transform-origin: center;
+  box-sizing: border-box;
+  will-change: transform, opacity;
+}
+
+/* Button expanding ripple */
+@keyframes buttonRipple {
+  0% {
+    transform: scale(0);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+
+.animate-btn-ripple {
+  animation: buttonRipple 650ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0ms;
+  will-change: transform, opacity;
+}
+
+/* Empty-State Slow Water Pulse (smooth 0 -> fade -> 0, zero static lingering rings) */
+@keyframes emptyWaterPulse1 {
+  0% {
+    transform: scale(0.2);
+    transform-origin: 50% 50%;
+    opacity: 0;
+    stroke-width: 1.8px;
+  }
+  15% {
+    opacity: 0.48;
+    stroke-width: 1.6px;
+  }
+  45% {
+    opacity: 0.22;
+    stroke-width: 1.1px;
+  }
+  85% {
+    opacity: 0.04;
+    stroke-width: 0.6px;
+  }
+  100% {
+    transform: scale(2.7);
+    transform-origin: 50% 50%;
+    opacity: 0;
+    stroke-width: 0.3px;
+  }
+}
+
+@keyframes emptyWaterPulse2 {
+  0% {
+    transform: scale(0.2);
+    transform-origin: 50% 50%;
+    opacity: 0;
+    stroke-width: 1.5px;
+  }
+  25% {
+    opacity: 0.32;
+    stroke-width: 1.3px;
+  }
+  55% {
+    opacity: 0.14;
+    stroke-width: 0.9px;
+  }
+  90% {
+    opacity: 0.03;
+    stroke-width: 0.5px;
+  }
+  100% {
+    transform: scale(2.4);
+    transform-origin: 50% 50%;
+    opacity: 0;
+    stroke-width: 0.25px;
+  }
+}
+
+.animate-empty-water-1 {
+  animation: emptyWaterPulse1 3.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+.animate-empty-water-2 {
+  animation: emptyWaterPulse2 3.4s cubic-bezier(0.16, 1, 0.3, 1) 0.6s infinite;
+}
+
+/* Ink Bloom Reveal for Modals */
+@keyframes inkBloom {
+  0% {
+    clip-path: circle(0% at var(--click-x, 50%) var(--click-y, 50%));
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    clip-path: circle(150% at var(--click-x, 50%) var(--click-y, 50%));
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-ink-bloom {
+  animation: inkBloom 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Modal Fade In (Scale & Opacity only, no translateY) */
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInScale 0.15s ease-out forwards;
+}
+
+/* Ambient Idle Water Ripple */
+@keyframes ambientWaterRipple {
+  0% {
+    transform: scale(0);
+    opacity: var(--peak-opacity, 0.18);
+    border-width: 2px;
+  }
+  40% {
+    opacity: calc(var(--peak-opacity, 0.18) * 0.65);
+  }
+  75% {
+    opacity: calc(var(--peak-opacity, 0.18) * 0.25);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+    border-width: 0.5px;
+  }
+}
+
+.animate-ambient-ripple {
+  animation: ambientWaterRipple var(--ripple-duration, var(--dur-ripple-idle)) var(--ease-ripple) both;
+  animation-delay: var(--ripple-delay, 0ms);
+  transform-origin: center;
+  box-sizing: border-box;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Idle Ripple Center Drop Dot */
+@keyframes idleDropDot {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.65;
+  }
+  30% {
+    transform: scale(1.1);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
+.animate-idle-drop-dot {
+  animation: idleDropDot 320ms var(--ease-ripple) forwards;
+  transform-origin: center;
+  box-sizing: border-box;
+  will-change: transform, opacity;
+}
+
+/* prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .animate-ink-bloom {
+    animation: none !important;
+    clip-path: none !important;
+    opacity: 1 !important;
+  }
+  .animate-ink-drift {
+    animation: none !important;
+  }
+  .animate-ambient-ripple,
+  .animate-idle-drop-dot {
+    animation: none !important;
+    display: none !important;
+  }
+  .animate-ink-ripple-1,
+  .animate-btn-ripple,
+  .animate-empty-water-1,
+  .animate-empty-water-2 {
+    animation: simpleFadeReduced 0.35s ease-out both !important;
+    transform: none !important;
+  }
+  @keyframes simpleFadeReduced {
+    0% { opacity: 0.35; }
+    100% { opacity: 0; }
+  }
+}

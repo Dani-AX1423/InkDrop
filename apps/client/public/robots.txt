@@ -1,0 +1,5 @@
+# InkDrop Robots File - Ephemeral Privacy & Zero Tracking
+User-agent: *
+Allow: /
+Disallow: /room/
+Disallow: /api/
