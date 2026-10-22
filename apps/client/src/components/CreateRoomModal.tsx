@@ -112,7 +112,7 @@ export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
             <Clock className="w-3.5 h-3.5 text-ink-indigo" strokeWidth={1.5} />
             <span>Lifetime (TTL)</span>
           </label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 xs:grid-cols-4 gap-2">
             {ttlOptions.map((opt) => {
               const isSelected = ttlMinutes === opt.value;
               return (
@@ -120,7 +120,7 @@ export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
                   key={String(opt.value)}
                   type="button"
                   onClick={() => setTtlMinutes(opt.value)}
-                  className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center ${
+                  className={`flex flex-col items-center justify-center p-2 rounded-xl border transition-all text-center min-h-[44px] ${
                     isSelected
                       ? 'border-ink-indigo bg-ink-indigo/15 text-paper-white shadow-sm ring-1 ring-ink-indigo/40'
                       : 'border-surface-border bg-surface-base/60 text-paper-muted hover:text-paper-white hover:border-surface-border-hover'

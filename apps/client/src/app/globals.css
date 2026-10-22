@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 :root {
   --water-deep: #05070C;
   --water-shallow: #0A0F1A;
@@ -19,6 +25,18 @@
   --ease-ripple: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --dur-ripple-click: 3000ms;
   --dur-ripple-idle: 4200ms;
+
+  /* Safe Area Insets */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
+  /* Fluid Spacing Scale */
+  --space-hero-gap: clamp(24px, 4vw, 56px);
+  --space-section-gap: clamp(32px, 5vw, 80px);
+  --space-card-gap: clamp(14px, 2vw, 24px);
+  --space-grid-gap: clamp(32px, 5vw, 96px);
 }
 
 html.light {
@@ -36,19 +54,111 @@ html.light {
   --ink-rose: #BE123C;
 }
 
+html {
+  min-height: 100dvh;
+}
+
 body {
   color: var(--paper-white);
   background-color: var(--water-deep);
   background-image: radial-gradient(circle at 50% 0%, #0c1424 0%, #05070C 85%);
-  min-height: 100vh;
+  min-height: 100dvh;
   font-family: var(--font-body), system-ui, -apple-system, sans-serif;
-  font-size: 15px;
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.0625rem);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
-  overflow-x: hidden;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
   transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Unified Page Container across Header, Lobby, Room */
+.ink-container {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: clamp(16px, 4vw, 48px);
+}
+
+@media (min-width: 1920px) {
+  .ink-container {
+    max-width: 1440px;
+  }
+}
+
+/* Fluid Typography */
+.text-fluid-hero {
+  font-size: clamp(2.25rem, 1.2rem + 4.5vw, 5.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.text-fluid-h1 {
+  font-size: clamp(1.75rem, 1rem + 2.5vw, 3rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.text-fluid-h2 {
+  font-size: clamp(1.4rem, 0.9rem + 1.8vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.text-fluid-h3 {
+  font-size: clamp(1.15rem, 0.85rem + 1vw, 1.6rem);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.text-fluid-body {
+  font-size: clamp(0.95rem, 0.9rem + 0.25vw, 1.0625rem);
+  line-height: 1.55;
+  text-wrap: pretty;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Minimum 44x44px touch hit area */
+@media (pointer: coarse) {
+  button,
+  a[role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Prevent iOS Safari automatic zoom-on-focus */
+@media (max-width: 639px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Hover effects restricted to pointer devices */
+@media (hover: hover) {
+  .hover-lift {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
 }
 
 html.light body {

@@ -107,7 +107,7 @@ export function MessageBubble({ message, isOwn }: MessageBubbleProps) {
 
         {/* Bubble with Organic Radii & Theme Tint */}
         <div
-          className={`relative max-w-[88%] sm:max-w-md px-4 py-2.5 text-sm leading-relaxed [overflow-wrap:anywhere] transition-all ${
+          className={`relative max-w-[85%] xs:max-w-[78%] md:max-w-[60ch] px-4 py-2.5 text-sm leading-relaxed [overflow-wrap:anywhere] transition-all ${
             isOwn
               ? 'rounded-drop bg-gradient-to-br from-[#4D4DFF] to-[#3939D4] text-white shadow-[0_4px_20px_-4px_rgba(91,91,255,0.35)] border border-indigo-400/25'
               : 'rounded-drop-other bg-surface-elevated text-paper-white border border-surface-border shadow-md'
@@ -227,28 +227,28 @@ export function MessageBubble({ message, isOwn }: MessageBubbleProps) {
           aria-modal="true"
           aria-label="Image Preview"
           onClick={() => setIsLightboxOpen(false)}
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-ink-drop"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-ink-drop"
         >
           <button
             type="button"
             onClick={() => setIsLightboxOpen(false)}
             aria-label="Close image preview"
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="absolute top-4 right-4 min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div
-            className="relative max-h-[85vh] max-w-[90vw] flex flex-col items-center"
+            className="relative max-h-[85dvh] max-w-[92vw] flex flex-col items-center"
             onClick={(e) => e.stopPropagation()}
           >
             <img
               src={message.imageDataUrl}
               alt={message.caption || 'Ephemeral drop'}
-              className="max-h-[80vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl border border-white/10"
+              className="max-h-[80dvh] max-w-[92vw] w-auto object-contain rounded-2xl shadow-2xl border border-white/10"
             />
             {message.caption && (
-              <p className="mt-3 text-sm text-paper-white text-center font-medium bg-black/60 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/10">
+              <p className="mt-3 text-sm text-paper-white text-center font-medium bg-black/60 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/10 max-w-full truncate">
                 {message.caption}
               </p>
             )}

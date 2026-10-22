@@ -114,7 +114,7 @@ export function ShareModal({
 
   const modalNode = (
     <div
-      className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="share-modal-title"
@@ -126,8 +126,13 @@ export function ShareModal({
     >
       <div
         ref={modalRef}
-        className="w-full max-w-sm max-h-[calc(100dvh-32px)] overflow-y-auto overscroll-contain rounded-2xl bg-surface-base border border-surface-border shadow-2xl p-6 relative"
+        className="w-full sm:max-w-sm max-h-[calc(100dvh-32px)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-2xl bg-surface-base border-t sm:border border-surface-border shadow-2xl p-6 relative pb-[max(1.5rem,env(safe-area-inset-bottom))]"
       >
+        {/* Mobile Drag Indicator Bar */}
+        <div className="sm:hidden flex justify-center -mt-2 mb-4">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-surface-border">
           <div className="flex items-center gap-2">
@@ -139,7 +144,7 @@ export function ShareModal({
           <button
             onClick={onClose}
             aria-label="Close share modal"
-            className="p-1 rounded-lg text-paper-muted hover:text-paper-white hover:bg-surface-elevated transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-paper-muted hover:text-paper-white hover:bg-surface-elevated transition-colors"
           >
             <X className="w-4 h-4" strokeWidth={1.5} />
           </button>

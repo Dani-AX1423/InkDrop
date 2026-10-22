@@ -71,6 +71,11 @@ export function useIdleRipples(containerRef: React.RefObject<HTMLDivElement | nu
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (motionQuery.matches) return;
 
+    // Disable idle background ripples on small touchscreens (<640px) to preserve battery & high FPS
+    const isTouchSmallScreen =
+      window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 640;
+    if (isTouchSmallScreen) return;
+
     // Determine config based on active route
     const isLobby = pathname === '/' || pathname === '';
     const config = isLobby ? ROUTE_RIPPLE_CONFIGS.lobby : ROUTE_RIPPLE_CONFIGS.room;

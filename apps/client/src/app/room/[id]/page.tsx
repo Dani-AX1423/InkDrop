@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   X,
   UploadCloud,
+  MoreVertical,
 } from 'lucide-react';
 import { useSocket } from '../../../hooks/useSocket';
 import { PasswordPromptModal } from '../../../components/PasswordPromptModal';
@@ -59,6 +60,47 @@ export default function DynamicChatRoomPage() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isEvaporating, setIsEvaporating] = useState(false);
   const [sendSquirt, setSendSquirt] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  // Close mobile menu on click outside
+  const mobileMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isMobileMenuOpen]);
+
+  // Dynamic mobile visualViewport height handling (prevents keyboard from covering input)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+        if (isAutoScrollLocked.current) {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleViewportChange);
+    window.visualViewport.addEventListener('scroll', handleViewportChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, []);
 
   // Pending image drop state
   const [pendingImage, setPendingImage] = useState<ProcessedImageResult | null>(null);
@@ -362,108 +404,171 @@ export default function DynamicChatRoomPage() {
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className={`relative mx-auto flex h-[calc(100vh-4.2rem)] max-w-4xl flex-col px-3 py-3 sm:px-6 transition-all duration-400 ${
+      style={viewportHeight ? { height: `${viewportHeight - 68}px` } : undefined}
+      className={`ink-container relative flex flex-col h-[calc(100dvh-4.2rem)] py-2 sm:py-3 transition-all duration-400 ${
         isEvaporating ? 'opacity-0 scale-95 blur-sm -translate-y-4' : 'opacity-100 scale-100 blur-0'
       }`}
     >
-      {/* Drag & Drop Visual Overlay */}
-      {isDraggingOver && (
-        <div className="absolute inset-0 z-50 m-3 rounded-[28px] border-2 border-dashed border-ink-teal bg-water-deep/85 backdrop-blur-md flex flex-col items-center justify-center pointer-events-none animate-ink-drop">
-          <UploadCloud className="w-12 h-12 text-ink-teal animate-bounce mb-3" />
-          <p className="text-lg font-serif font-medium text-paper-white">
-            Drop image to diffuse into the pool
-          </p>
-          <p className="text-xs font-mono text-paper-muted mt-1">
-            PNG, JPEG, WebP · Max 500KB · Strips metadata
-          </p>
-        </div>
-      )}
+      {/* Centered Chat Column (Max ~880px on Wide & Ultrawide) */}
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-[880px] mx-auto">
+        {/* Drag & Drop Visual Overlay */}
+        {isDraggingOver && (
+          <div className="absolute inset-0 z-50 m-3 rounded-[28px] border-2 border-dashed border-ink-teal bg-water-deep/85 backdrop-blur-md flex flex-col items-center justify-center pointer-events-none animate-ink-drop">
+            <UploadCloud className="w-12 h-12 text-ink-teal animate-bounce mb-3" />
+            <p className="text-lg font-serif font-medium text-paper-white">
+              Drop image to diffuse into the pool
+            </p>
+            <p className="text-xs font-mono text-paper-muted mt-1">
+              PNG, JPEG, WebP · Max 500KB · Strips metadata
+            </p>
+          </div>
+        )}
 
-      {/* Pool Header Bar */}
-      <div className="flex items-center justify-between rounded-2xl border border-surface-border bg-surface-base/85 px-4 sm:px-6 py-3.5 backdrop-blur-md shadow-sm">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="font-display text-xl sm:text-2xl font-normal tracking-tight text-paper-white truncate max-w-[180px] sm:max-w-md">
-                {activeRoom?.name || 'Ephemeral Pool'}
-              </h1>
+        {/* Pool Header Bar */}
+        <div className="relative flex items-center justify-between rounded-2xl border border-surface-border bg-surface-base/85 px-3.5 sm:px-5 py-3 backdrop-blur-md shadow-sm">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="font-display text-lg xs:text-xl sm:text-2xl font-bold tracking-tight text-paper-white truncate max-w-[150px] xs:max-w-[220px] sm:max-w-md">
+                  {activeRoom?.name || 'Ephemeral Pool'}
+                </h1>
 
-              {activeRoom?.isPrivate ? (
-                <span className="inline-flex items-center gap-1 rounded-md border border-ink-rose/30 bg-ink-rose/10 px-2 py-0.5 text-[10px] font-mono text-ink-rose">
-                  <Lock className="h-2.5 w-2.5" strokeWidth={1.5} />
-                  <span>locked</span>
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 rounded-md border border-ink-teal/30 bg-ink-teal/10 px-2 py-0.5 text-[10px] font-mono text-ink-teal">
-                  <Unlock className="h-2.5 w-2.5" strokeWidth={1.5} />
-                  <span>open</span>
-                </span>
-              )}
+                {activeRoom?.isPrivate ? (
+                  <span className="inline-flex items-center gap-1 rounded-md border border-ink-rose/30 bg-ink-rose/10 px-2 py-0.5 text-[10px] font-mono text-ink-rose shrink-0">
+                    <Lock className="h-2.5 w-2.5" strokeWidth={1.5} />
+                    <span>locked</span>
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-md border border-ink-teal/30 bg-ink-teal/10 px-2 py-0.5 text-[10px] font-mono text-ink-teal shrink-0">
+                    <Unlock className="h-2.5 w-2.5" strokeWidth={1.5} />
+                    <span>open</span>
+                  </span>
+                )}
 
-              {/* TTL Countdown Clock */}
-              {timeLeftSec !== null && (
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-0.5 text-[11px] font-mono border transition-all ${
-                    isUrgentTTL
-                      ? 'border-ink-rose bg-ink-rose/20 text-ink-rose font-bold'
-                      : 'border-ink-indigo/40 bg-ink-indigo/10 text-paper-white'
-                  }`}
-                  title="Time until this room evaporates"
+                {/* TTL Countdown Clock */}
+                {timeLeftSec !== null && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-mono border transition-all shrink-0 ${
+                      isUrgentTTL
+                        ? 'border-ink-rose bg-ink-rose/20 text-ink-rose font-bold'
+                        : 'border-ink-indigo/40 bg-ink-indigo/10 text-paper-white'
+                    }`}
+                    title="Time until this room evaporates"
+                  >
+                    <Clock className="h-3 w-3" strokeWidth={1.5} />
+                    <span>{formatCountdown(timeLeftSec)}</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Desktop ID & Action Row */}
+              <div className="hidden sm:flex items-center gap-3 mt-1 text-[11px] font-mono text-paper-muted">
+                <button
+                  onClick={handleCopyId}
+                  className="group flex items-center gap-1 hover:text-paper-white transition-colors"
+                  title="Copy pool ID"
                 >
-                  <Clock className="h-3 w-3" strokeWidth={1.5} />
-                  <span>{formatCountdown(timeLeftSec)}</span>
-                </span>
-              )}
+                  <span>{roomId}</span>
+                  {copied ? (
+                    <Check className="h-2.5 w-2.5 text-ink-teal" strokeWidth={1.5} />
+                  ) : (
+                    <Copy className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="flex items-center gap-1 hover:text-ink-teal transition-colors"
+                  title="Share Pool & QR Code"
+                >
+                  <Share2 className="h-2.5 w-2.5" strokeWidth={1.5} />
+                  <span>share</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Header Actions */}
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Live Population Dots */}
+            <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/70 px-2.5 py-1.5 backdrop-blur-sm">
+              <PopulationDots count={activeRoom?.userCount ?? 1} />
+              <span className="hidden sm:inline font-sans text-xs text-paper-muted">
+                {activeRoom?.userCount ?? 1} in pool
+              </span>
             </div>
 
-            {/* Compact ID & Action Row */}
-            <div className="flex items-center gap-3 mt-1 text-[11px] font-mono text-paper-muted">
-              <button
-                onClick={handleCopyId}
-                className="group flex items-center gap-1 hover:text-paper-white transition-colors"
-                title="Copy pool ID"
-              >
-                <span>{roomId}</span>
-                {copied ? (
-                  <Check className="h-2.5 w-2.5 text-ink-teal" strokeWidth={1.5} />
-                ) : (
-                  <Copy className="h-2.5 w-2.5 opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.5} />
-                )}
-              </button>
+            {/* Desktop Evaporate / Leave Button */}
+            <button
+              onClick={handleLeave}
+              className="hidden sm:flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-elevated/60 px-3 py-1.5 text-xs text-paper-muted hover:text-ink-rose hover:border-ink-rose/30 hover:bg-ink-rose/10 active:scale-95 transition-all select-none"
+              title="Evaporate presence and exit"
+            >
+              <Wind className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <span>Evaporate</span>
+            </button>
 
+            {/* Mobile Overflow "More" Button */}
+            <div className="sm:hidden relative" ref={mobileMenuRef}>
               <button
                 type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex items-center gap-1 hover:text-ink-teal transition-colors"
-                title="Share Pool & QR Code"
+                onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+                aria-label="More actions"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-surface-border bg-surface-elevated/80 text-paper-muted hover:text-paper-white transition-colors"
               >
-                <Share2 className="h-2.5 w-2.5" strokeWidth={1.5} />
-                <span>share</span>
+                <MoreVertical className="w-4 h-4" />
               </button>
+
+              {/* Mobile Overflow Dropdown Menu */}
+              {isMobileMenuOpen && (
+                <div className="absolute right-0 top-12 z-50 w-48 rounded-2xl border border-surface-border bg-surface-base/95 p-1.5 shadow-2xl backdrop-blur-xl animate-fade-in text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCopyId();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-paper-white hover:bg-surface-elevated transition-colors min-h-[44px]"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4 text-ink-teal shrink-0" strokeWidth={1.5} />
+                    ) : (
+                      <Copy className="h-4 w-4 text-paper-muted shrink-0" strokeWidth={1.5} />
+                    )}
+                    <span>{copied ? 'Copied ID!' : 'Copy Pool ID'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsShareModalOpen(true);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-paper-white hover:bg-surface-elevated transition-colors min-h-[44px]"
+                  >
+                    <Share2 className="h-4 w-4 text-ink-teal shrink-0" strokeWidth={1.5} />
+                    <span>Share & QR Code</span>
+                  </button>
+
+                  <div className="my-1 border-t border-surface-border/60" />
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLeave();
+                    }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-left text-ink-rose hover:bg-ink-rose/10 transition-colors min-h-[44px]"
+                  >
+                    <Wind className="h-4 w-4 shrink-0" strokeWidth={1.5} />
+                    <span>Evaporate Pool</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
-        {/* Live Population Dots & Quiet Leave Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/70 px-2.5 py-1.5 backdrop-blur-sm">
-            <PopulationDots count={activeRoom?.userCount ?? 1} />
-            <span className="hidden sm:inline font-sans text-xs text-paper-muted">
-              {activeRoom?.userCount ?? 1} in pool
-            </span>
-          </div>
-
-          {/* Quiet "Evaporate / Leave" Action */}
-          <button
-            onClick={handleLeave}
-            className="flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-elevated/60 px-3 py-1.5 text-xs text-paper-muted hover:text-ink-rose hover:border-ink-rose/30 hover:bg-ink-rose/10 active:scale-95 transition-all select-none"
-            title="Evaporate presence and exit"
-          >
-            <Wind className="h-3.5 w-3.5" strokeWidth={1.5} />
-            <span className="hidden sm:inline">Evaporate</span>
-          </button>
-        </div>
-      </div>
 
       {/* Non-blocking Reconnection State Alert */}
       {connectionStatus !== 'connected' && (
@@ -596,9 +701,9 @@ export default function DynamicChatRoomPage() {
                   ? 'Connecting to server...'
                   : 'Drop an image into pool (max 500KB)'
               }
-              className="p-2 ml-1 rounded-xl text-paper-muted hover:text-ink-teal hover:bg-surface-base transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-paper-muted hover:text-ink-teal hover:bg-surface-base transition-colors shrink-0 disabled:opacity-30 disabled:cursor-not-allowed"
             >
-              <ImageIcon className="w-4 h-4" strokeWidth={1.5} />
+              <ImageIcon className="w-5 h-5" strokeWidth={1.5} />
             </button>
 
             <input
@@ -606,16 +711,21 @@ export default function DynamicChatRoomPage() {
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onFocus={() => {
+                setTimeout(() => {
+                  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }, 300);
+              }}
               disabled={isRateLimited}
               placeholder={
                 isRateLimited
-                  ? 'Slow down, waves need time to settle...'
+                  ? 'Waves settling...'
                   : pendingImage
                   ? 'Add an optional image caption...'
-                  : 'Drop your words into the dark water...'
+                  : 'Drop words into the dark water...'
               }
               maxLength={1000}
-              className={`flex-1 bg-transparent px-3 py-2 text-sm text-paper-white placeholder-paper-faint focus:outline-none transition-all ${
+              className={`flex-1 bg-transparent px-3 py-2 text-base sm:text-sm text-paper-white placeholder-paper-faint focus:outline-none transition-all ${
                 isRateLimited ? 'opacity-40 italic cursor-not-allowed' : 'opacity-100'
               }`}
             />
@@ -624,7 +734,7 @@ export default function DynamicChatRoomPage() {
             <button
               type="submit"
               disabled={(!inputText.trim() && !pendingImage) || isRateLimited || connectionStatus !== 'connected'}
-              className={`relative flex h-9 w-9 items-center justify-center rounded-xl bg-ink-indigo text-white transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[#4D4DEB] active:scale-95 shrink-0`}
+              className="relative min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-ink-indigo text-white transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] hover:bg-[#4D4DEB] active:scale-95 shrink-0"
               title={
                 connectionStatus !== 'connected'
                   ? 'Connecting to server...'
@@ -647,6 +757,7 @@ export default function DynamicChatRoomPage() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Password Prompt Modal for Direct Navigation */}

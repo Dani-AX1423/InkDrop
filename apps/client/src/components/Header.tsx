@@ -49,13 +49,16 @@ export function Header() {
   }[connectionStatus];
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-surface-border bg-water-deep/90 backdrop-blur-md transition-colors">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
+    <header
+      className="sticky top-0 z-40 w-full border-b border-surface-border bg-water-deep/90 backdrop-blur-md transition-colors"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
+    >
+      <div className="ink-container flex h-16 items-center justify-between">
         {/* Logo & Ticket-Stub Subtitle */}
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group shrink-0 min-h-[44px]">
           <DropLogo size={26} />
-          <div className="flex items-center gap-2.5">
-            <span className="font-display text-xl sm:text-2xl font-bold tracking-tight text-paper-white group-hover:text-white transition-colors">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-lg xs:text-xl sm:text-2xl font-bold tracking-tight text-paper-white group-hover:text-white transition-colors">
               InkDrop
             </span>
             <span className="hidden sm:inline-flex items-center gap-1.5 font-mono text-[10px] px-2 py-0.5 rounded border border-dashed border-surface-border bg-surface-elevated/40 text-paper-muted">
@@ -66,9 +69,13 @@ export function Header() {
         </Link>
 
         {/* Right Status Cluster */}
-        <div className="flex items-center gap-3 sm:gap-4">
-          {/* Connection Status & Ping */}
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 xs:gap-3 sm:gap-4 shrink-0">
+          {/* Connection Status Dot & Ping */}
+          <div
+            className="flex items-center gap-1.5 sm:gap-2 px-1.5 py-1 rounded-lg"
+            title={`Status: ${statusLabel}`}
+            aria-label={`Status: ${statusLabel}`}
+          >
             <div className="relative flex h-2 w-2 items-center justify-center">
               <span
                 className={`absolute h-full w-full rounded-full opacity-60 ${statusColor} ${
@@ -86,45 +93,45 @@ export function Header() {
               />
             </div>
 
-            <span className="font-mono text-[10px] text-paper-muted">
+            <span className="hidden sm:inline font-mono text-[10px] text-paper-muted">
               {statusLabel}
             </span>
           </div>
 
           {/* User Alias Display (Rendered post-hydration for zero mismatch) */}
           {mounted && username && (
-            <div className="border-l border-surface-border pl-3">
+            <div className="border-l border-surface-border pl-2 xs:pl-3">
               {isEditingAlias ? (
-                <form onSubmit={handleSaveAlias} className="flex items-center gap-1.5">
+                <form onSubmit={handleSaveAlias} className="flex items-center gap-1">
                   <input
                     type="text"
                     value={tempAlias}
                     onChange={(e) => setTempAlias(e.target.value)}
                     maxLength={20}
-                    className="w-28 rounded-lg border border-ink-indigo bg-surface-base px-2 py-1 text-xs text-paper-white focus:outline-none"
+                    className="w-24 xs:w-28 rounded-lg border border-ink-indigo bg-surface-base px-2 py-1 text-xs text-paper-white focus:outline-none"
                     autoFocus
                     onBlur={() => setIsEditingAlias(false)}
                   />
                   <button
                     type="submit"
-                    className="p-1 rounded-md text-ink-teal hover:bg-surface-elevated transition-colors"
+                    className="min-h-[44px] min-w-[36px] flex items-center justify-center p-1 rounded-md text-ink-teal hover:bg-surface-elevated transition-colors"
                     title="Save alias"
                   >
-                    <Check className="h-3 w-3" strokeWidth={1.5} />
+                    <Check className="h-3.5 w-3.5" strokeWidth={1.5} />
                   </button>
                 </form>
               ) : (
                 <button
                   type="button"
                   onClick={handleStartEdit}
-                  className="group/alias flex items-center gap-1.5 rounded-lg border border-surface-border bg-surface-elevated/70 px-2.5 py-1 text-xs text-paper-white hover:border-surface-border-hover transition-all select-none"
+                  className="group/alias flex items-center gap-1 xs:gap-1.5 rounded-lg border border-surface-border bg-surface-elevated/70 px-2 xs:px-2.5 py-1.5 text-xs text-paper-white hover:border-surface-border-hover transition-all select-none min-h-[40px]"
                   title="Click to rename yourself"
                 >
-                  <span className="text-paper-muted text-[11px]">as:</span>
-                  <span className="text-paper-white max-w-[120px] truncate font-medium">
+                  <span className="text-paper-muted text-[11px] hidden xs:inline">as:</span>
+                  <span className="text-paper-white max-w-[70px] xs:max-w-[95px] sm:max-w-[120px] truncate font-medium">
                     {username}
                   </span>
-                  <Edit3 className="h-3 w-3 text-paper-muted opacity-40 group-hover/alias:opacity-100 transition-opacity" strokeWidth={1.5} />
+                  <Edit3 className="h-3 w-3 text-paper-muted opacity-40 group-hover/alias:opacity-100 transition-opacity shrink-0" strokeWidth={1.5} />
                 </button>
               )}
             </div>
@@ -135,7 +142,7 @@ export function Header() {
             type="button"
             onClick={() => setIsSettingsOpen(true)}
             aria-label="Open settings"
-            className="p-2 rounded-xl text-paper-muted hover:text-paper-white hover:bg-surface-elevated transition-colors border border-transparent hover:border-surface-border cursor-pointer"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-xl text-paper-muted hover:text-paper-white hover:bg-surface-elevated transition-colors border border-transparent hover:border-surface-border cursor-pointer"
           >
             <Settings className="w-4 h-4" strokeWidth={1.5} />
           </button>

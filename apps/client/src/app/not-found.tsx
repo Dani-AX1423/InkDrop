@@ -4,7 +4,7 @@ import { DropLogo } from '../components/DropLogo';
 
 export default function NotFound() {
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center">
+    <div className="ink-container min-h-[75dvh] flex flex-col items-center justify-center py-12 text-center">
       <div className="relative mb-6">
         <div className="absolute -inset-4 rounded-full bg-ink-indigo/20 blur-xl animate-pulse" />
         <DropLogo size={56} />
@@ -15,18 +15,18 @@ export default function NotFound() {
         Error 404 • Dissolved
       </span>
 
-      <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-paper-white mb-3">
+      <h1 className="font-display text-fluid-h1 font-bold tracking-tight text-paper-white mb-3 text-balance">
         Pool Evaporated
       </h1>
 
-      <p className="max-w-md text-sm sm:text-base text-paper-muted mb-8 leading-relaxed">
+      <p className="max-w-[48ch] text-fluid-body text-paper-muted mb-8 leading-relaxed text-pretty">
         The drop you were looking for has completely dissolved into dark water,
         reached its scheduled expiration, or never existed in memory.
       </p>
 
       <Link
         href="/"
-        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-paper-white bg-ink-indigo/20 hover:bg-ink-indigo/30 border border-ink-indigo/40 hover:border-ink-indigo transition-all duration-200 active:scale-95 shadow-lg shadow-ink-indigo/10"
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium text-sm text-paper-white bg-ink-indigo/20 hover:bg-ink-indigo/30 border border-ink-indigo/40 hover:border-ink-indigo transition-all duration-200 active:scale-95 shadow-lg shadow-ink-indigo/10 min-h-[44px]"
       >
         <ArrowLeft className="w-4 h-4" />
         Return to Lobby

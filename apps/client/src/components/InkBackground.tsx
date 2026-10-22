@@ -134,10 +134,10 @@ export function InkBackground() {
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b14] via-[#05070C] to-[#040508] dark:block hidden" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FAFBFD] via-[#F4F6F9] to-[#E9EEF5] dark:hidden block" />
 
-        {/* Darkened off-center ink pigment blob in top-right (max 420px, max 18% opacity) */}
+        {/* Darkened off-center ink pigment blob in top-right (scaled down on mobile for high FPS) */}
         {isTabVisible && (
           <div
-            className="absolute -top-16 -right-16 h-[400px] w-[400px] max-w-[40vw] max-h-[40vh] rounded-full opacity-18 blur-[110px] pointer-events-none animate-ink-drift"
+            className="absolute -top-16 -right-16 h-[200px] w-[200px] sm:h-[280px] sm:w-[280px] md:h-[400px] md:w-[400px] max-w-[40vw] max-h-[40vh] rounded-full opacity-18 blur-[60px] md:blur-[110px] pointer-events-none animate-ink-drift"
             style={{
               background:
                 'radial-gradient(circle at 45% 45%, #1B1B4B 0%, #0F3B44 55%, rgba(5,7,12,0) 80%)',
@@ -146,10 +146,10 @@ export function InkBackground() {
           />
         )}
 
-        {/* Secondary very subtle off-center deep wine wash in bottom-left (max 12% opacity) */}
+        {/* Secondary deep wine wash in bottom-left (hidden below 768px to reduce mobile GPU fill-rate) */}
         {isTabVisible && (
           <div
-            className="absolute -bottom-20 -left-20 h-[340px] w-[340px] max-w-[35vw] max-h-[35vh] rounded-full opacity-12 blur-[100px] pointer-events-none animate-ink-drift"
+            className="hidden md:block absolute -bottom-20 -left-20 h-[340px] w-[340px] max-w-[35vw] max-h-[35vh] rounded-full opacity-12 blur-[100px] pointer-events-none animate-ink-drift"
             style={{
               background:
                 'radial-gradient(circle at 50% 50%, #2B1224 0%, #15152A 60%, rgba(5,7,12,0) 85%)',

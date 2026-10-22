@@ -57,7 +57,7 @@ export function InkModal({
 
   const modalElement = (
     <div
-      className="fixed inset-0 z-[100] grid place-items-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       onClick={(e) => {
@@ -66,13 +66,18 @@ export function InkModal({
         }
       }}
     >
-      {/* Ink Bloom Animated Container */}
+      {/* Ink Bloom Animated Container / Mobile Bottom Sheet */}
       <div
-        className="relative w-full max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto overscroll-contain rounded-2xl border border-surface-border bg-surface-elevated/95 p-6 sm:p-7 shadow-2xl animate-ink-bloom"
+        className="relative w-full sm:max-w-md max-h-[calc(100dvh-32px)] overflow-y-auto overscroll-contain rounded-t-3xl sm:rounded-2xl border-t sm:border border-surface-border bg-surface-elevated/98 p-6 sm:p-7 shadow-2xl animate-ink-bloom pb-[max(1.5rem,env(safe-area-inset-bottom))]"
         style={{
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.9)',
+          boxShadow: '0 -10px 40px -10px rgba(0, 0, 0, 0.9), 0 25px 60px -15px rgba(0, 0, 0, 0.9)',
         }}
       >
+        {/* Mobile Drag Indicator Bar on Phones */}
+        <div className="sm:hidden flex justify-center -mt-2 mb-4">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
+
         {/* Soft radial ink bleed in corner */}
         <div
           className={`pointer-events-none absolute -top-16 -right-16 h-48 w-48 rounded-full blur-3xl opacity-60 ${accentBleed}`}
@@ -93,7 +98,7 @@ export function InkModal({
           <button
             onClick={onClose}
             aria-label="Close modal"
-            className="rounded-lg p-1.5 text-paper-muted hover:text-paper-white hover:bg-surface-base transition-colors"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl p-2 text-paper-muted hover:text-paper-white hover:bg-surface-base transition-colors"
           >
             <X className="h-4 w-4" strokeWidth={1.5} />
           </button>

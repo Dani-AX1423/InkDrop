@@ -48,8 +48,8 @@ export function PoolCard({ room, onEnter }: PoolCardProps) {
       onClick={() => {
         if (isConnected) onEnter(room);
       }}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-surface-border bg-surface-base/85 p-5 sm:p-6 backdrop-blur-md transition-all duration-200 shadow-sm ${
-        isConnected ? 'hover:-translate-y-0.5 hover:border-surface-border-hover cursor-pointer' : 'cursor-not-allowed opacity-80'
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-surface-border bg-surface-base/85 p-5 sm:p-6 backdrop-blur-md transition-all duration-200 shadow-sm min-h-[140px] ${
+        isConnected ? 'hover-lift hover:border-surface-border-hover cursor-pointer active:scale-[0.98]' : 'cursor-not-allowed opacity-80'
       }`}
     >
       {/* Corner Bleed: Subtle atmospheric tint */}

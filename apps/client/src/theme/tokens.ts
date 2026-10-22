@@ -48,13 +48,13 @@ export const TYPOGRAPHY = {
   fontBody: 'var(--font-body)',
   fontMono: 'var(--font-mono)',
   scale: {
-    hero: 'clamp(2.5rem, 5.5vw, 4.25rem)',
-    h1: '2.5rem',
-    h2: '2rem',
-    h3: '1.5rem',
-    bodyBase: '15px',
-    bodySm: '13px',
-    mono: '11px',
+    hero: 'clamp(2.25rem, 1.2rem + 4.5vw, 5.25rem)',
+    h1: 'clamp(1.75rem, 1rem + 2.5vw, 3rem)',
+    h2: 'clamp(1.4rem, 0.9rem + 1.8vw, 2.25rem)',
+    h3: 'clamp(1.15rem, 0.85rem + 1vw, 1.6rem)',
+    bodyBase: 'clamp(0.95rem, 0.9rem + 0.25vw, 1.0625rem)',
+    bodySm: 'clamp(0.8125rem, 0.78rem + 0.15vw, 0.875rem)',
+    mono: 'clamp(0.6875rem, 0.65rem + 0.15vw, 0.75rem)',
   },
   lineHeight: {
     display: '1.04',
@@ -62,6 +62,21 @@ export const TYPOGRAPHY = {
   },
   maxWidth: {
     editorial: '52ch',
+    bubble: '60ch',
+  },
+} as const;
+
+export const LAYOUT = {
+  container: {
+    maxWidthStandard: '1280px',
+    maxWidthUltrawide: '1440px',
+    paddingInline: 'clamp(16px, 4vw, 48px)',
+  },
+  spacing: {
+    heroGap: 'clamp(24px, 4vw, 56px)',
+    sectionGap: 'clamp(32px, 5vw, 80px)',
+    cardGap: 'clamp(14px, 2vw, 24px)',
+    gridGap: 'clamp(32px, 5vw, 96px)',
   },
 } as const;
 

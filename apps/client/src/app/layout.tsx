@@ -89,7 +89,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${bricolageGrotesque.variable} ${hankenGrotesk.variable} ${martianMono.variable}`}
     >
-      <body className="min-h-screen bg-water-deep text-paper-white font-body antialiased selection:bg-ink-indigo/35 selection:text-paper-white text-[15px] leading-[1.55]">
+      <body className="min-h-[100dvh] bg-water-deep text-paper-white font-body antialiased selection:bg-ink-indigo/35 selection:text-paper-white text-[15px] leading-[1.55]">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -98,9 +98,9 @@ export default function RootLayout({
         >
           <SocketProvider>
             <InkBackground />
-            <div className="relative flex min-h-screen flex-col">
+            <div className="relative flex min-h-[100dvh] flex-col">
               <Header />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 flex flex-col">{children}</main>
               <RateLimitToast />
             </div>
           </SocketProvider>
