@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lock, Loader2, KeyRound } from 'lucide-react';
+import { Lock, KeyRound } from 'lucide-react';
 import { useSocket } from '../hooks/useSocket';
 import { useRouter } from 'next/navigation';
 import { PublicRoomInfo } from '../types';
-import { InkModal } from './InkModal';
-import { RippleButton } from './RippleButton';
+import { Modal } from './ui/Modal';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
 interface PasswordPromptModalProps {
   room: PublicRoomInfo | null;
@@ -25,8 +26,8 @@ export function PasswordPromptModal({ room, onClose }: PasswordPromptModalProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password) {
-      setError('Passcode is required to enter this pool.');
+    if (!password.trim()) {
+      setError('A passcode is required to enter this pool.');
       return;
     }
 
@@ -39,7 +40,7 @@ export function PasswordPromptModal({ room, onClose }: PasswordPromptModalProps)
           ? localStorage.getItem('inkdrop_username') || localStorage.getItem('inkdrop_alias')
           : null) || undefined;
 
-      const res = await joinRoom(room.id, password, savedUsername);
+      const res = await joinRoom(room.id, password.trim(), savedUsername);
       if (res.success && res.room) {
         onClose();
         router.push(`/room/${room.id}`);
@@ -55,39 +56,40 @@ export function PasswordPromptModal({ room, onClose }: PasswordPromptModalProps)
   };
 
   return (
-    <InkModal
+    <Modal
       isOpen={Boolean(room)}
       onClose={onClose}
       title="Locked Pool"
       subtitle={room.name}
       accent="rose"
     >
-      {error && (
-        <div className="mb-4 rounded-xl border border-ink-rose/30 bg-ink-rose/10 px-3.5 py-2 text-xs text-ink-rose animate-fadeIn">
-          {error}
-        </div>
-      )}
-
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-xs font-sans text-paper-muted mb-1.5">
-            Passcode
-          </label>
-          <div className="relative">
-            <input
-              type="password"
-              placeholder="Enter passcode..."
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-surface-border bg-surface-base/90 pl-10 pr-4 py-2 text-sm text-paper-white placeholder-paper-faint focus:border-ink-rose focus:outline-none transition-all font-mono"
-              autoFocus
-            />
-            <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-paper-muted" strokeWidth={1.5} />
+        {error && (
+          <div
+            role="alert"
+            className="rounded-xl border border-ink-rose/30 bg-ink-rose/10 px-3.5 py-2.5 text-xs text-ink-rose flex items-center gap-2 animate-fade-in"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-ink-rose shrink-0" />
+            <span>{error}</span>
           </div>
-        </div>
+        )}
 
-        <div className="pt-3 flex items-center justify-end gap-2 border-t border-surface-border">
-          <RippleButton
+        <Input
+          label="Passcode"
+          type="password"
+          placeholder="Enter secret passphrase..."
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            if (error) setError(null);
+          }}
+          leftIcon={<KeyRound className="h-4 w-4" strokeWidth={1.5} />}
+          autoComplete="off"
+          autoFocus
+        />
+
+        <div className="pt-4 flex items-center justify-end gap-2.5 border-t border-surface-border">
+          <Button
             type="button"
             variant="ghost"
             size="md"
@@ -95,22 +97,20 @@ export function PasswordPromptModal({ room, onClose }: PasswordPromptModalProps)
             disabled={loading}
           >
             Cancel
-          </RippleButton>
-          <RippleButton
+          </Button>
+
+          <Button
             type="submit"
-            variant="rose"
+            variant="danger"
             size="md"
-            disabled={loading}
+            disabled={!password.trim() || loading}
+            isLoading={loading}
+            leftIcon={<Lock className="h-4 w-4" strokeWidth={1.5} />}
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" strokeWidth={1.5} />
-            ) : (
-              <Lock className="h-3.5 w-3.5" strokeWidth={1.5} />
-            )}
-            <span>Unlock Pool</span>
-          </RippleButton>
+            Unlock Pool
+          </Button>
         </div>
       </form>
-    </InkModal>
+    </Modal>
   );
 }

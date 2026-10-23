@@ -84,21 +84,21 @@ const config: Config = {
       },
       keyframes: {
         inkDropIn: {
-          '0%': { opacity: '0', transform: 'scale(0.92) translateY(6px)', filter: 'blur(5px)' },
-          '100%': { opacity: '1', transform: 'scale(1) translateY(0)', filter: 'blur(0)' },
+          '0%': { opacity: '0', transform: 'scale(0.96) translateY(4px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0)' },
         },
         inkVapor: {
-          '0%': { opacity: '1', transform: 'translateY(0)', filter: 'blur(0)' },
-          '100%': { opacity: '0', transform: 'translateY(-10px)', filter: 'blur(6px)' },
+          '0%': { opacity: '1', transform: 'translateY(0)' },
+          '100%': { opacity: '0', transform: 'translateY(-6px)' },
         },
         inkRipplePulse: {
           '0%': { transform: 'scale(0.8)', opacity: '0.8' },
           '100%': { transform: 'scale(2.4)', opacity: '0' },
         },
         inkDriftSlow: {
-          '0%': { transform: 'translate(0px, 0px) scale(1)' },
-          '50%': { transform: 'translate(25px, -15px) scale(1.05)' },
-          '100%': { transform: 'translate(-20px, 20px) scale(0.97)' },
+          '0%': { transform: 'translate3d(0px, 0px, 0) scale(1)' },
+          '50%': { transform: 'translate3d(25px, -15px, 0) scale(1.05)' },
+          '100%': { transform: 'translate3d(-20px, 20px, 0) scale(0.97)' },
         },
       },
       animation: {

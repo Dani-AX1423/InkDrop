@@ -7,6 +7,7 @@ import React, {
   useState,
   useRef,
   useCallback,
+  useMemo,
   ReactNode,
 } from 'react';
 import { io, Socket } from 'socket.io-client';
@@ -23,6 +24,7 @@ import {
 } from '../types';
 import { playMessageChime, playSystemChime, playSendSound, playErrorSound } from '../lib/audio';
 import { useSettings, getStoredUsername } from '../hooks/useSettings';
+import { clientSanitizeMessage } from '../lib/moderation';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -57,9 +59,25 @@ interface SocketContextType {
   sendImage: (dataUrl: string, caption?: string) => Promise<DeliveryAck>;
   requestRoomList: () => void;
   clearRateLimitNotice: () => void;
+  retryMessage?: (failedMessage: ChatMessage) => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
+
+// Module-level in-memory rooms cache to pre-fill lobby instantaneously without waiting
+// Global lightweight latency event bus (eliminates tree re-renders from latency ticks)
+const latencyListeners = new Set<(ms: number | null) => void>();
+let globalLatency: number | null = null;
+
+export function subscribeLatency(fn: (ms: number | null) => void): () => void {
+  latencyListeners.add(fn);
+  fn(globalLatency);
+  return () => {
+    latencyListeners.delete(fn);
+  };
+}
+
+let lastKnownRooms: PublicRoomInfo[] = [];
 
 // Read server URL from NEXT_PUBLIC_SERVER_URL (or fallback NEXT_PUBLIC_SOCKET_SERVER_URL)
 const RAW_SERVER_URL =
@@ -83,7 +101,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const [wakingElapsedSeconds, setWakingElapsedSeconds] = useState<number>(0);
   const [evaporatedNotice, setEvaporatedNotice] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [rooms, setRooms] = useState<PublicRoomInfo[]>([]);
+  const [rooms, setRooms] = useState<PublicRoomInfo[]>(lastKnownRooms);
   const [activeRoom, setActiveRoom] = useState<ActiveRoomState | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [rateLimitNotice, setRateLimitNotice] = useState<RateLimitNotice | null>(null);
@@ -202,10 +220,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   // Socket Lifecycle Connection
   useEffect(() => {
     const s = io(SERVER_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
+      reconnection: true,
       reconnectionAttempts: Infinity,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 300, // fast first retry (~300ms)
       reconnectionDelayMax: 5000,
+      randomizationFactor: 0.5,
       timeout: 10000,
     });
 
@@ -230,17 +250,18 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       hasConnectedOnceRef.current = true;
       s.emit('request_room_list');
 
-      // Start Latency Ping Probe
+      // Start Latency Ping Probe (every 8s lightweight interval, updates badge without re-rendering tree)
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
       pingIntervalRef.current = setInterval(() => {
         if (s.connected) {
           const start = Date.now();
           s.emit('ping_gateway', start, () => {
             const rtt = Math.max(1, Date.now() - start);
-            setLatencyMs(rtt);
+            globalLatency = rtt;
+            latencyListeners.forEach((fn) => fn(rtt));
           });
         }
-      }, 5000);
+      }, 8000);
 
       // Automatic Room Rejoin after mid-session reconnect
       const lastRoomId = activeRoomIdRef.current;
@@ -290,18 +311,41 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     });
 
     s.on('connect_error', () => {
-      setLatencyMs(null);
+      globalLatency = null;
+      latencyListeners.forEach((fn) => fn(null));
       if (hasConnectedOnceRef.current) {
         setConnectionStatus('reconnecting');
       }
     });
 
     s.on('room_list_update', (roomList: PublicRoomInfo[]) => {
-      setRooms(roomList || []);
+      lastKnownRooms = roomList || [];
+      setRooms(lastKnownRooms);
     });
 
     s.on('new_message', (message: ChatMessage) => {
-      setMessages((prev) => [...prev.slice(-199), message]);
+      setMessages((prev) => {
+        // Robust matching against optimistic pending message:
+        // 1. By server message.id matching an existing message
+        // 2. By message.tempId matching m.id or m.tempId
+        // 3. Fallback for pending message by same sender within 6 seconds
+        const pendingIdx = prev.findIndex(
+          (m) =>
+            m.id === message.id ||
+            (message.tempId && (m.id === message.tempId || m.tempId === message.tempId)) ||
+            (m.status === 'pending' &&
+              m.sender === message.sender &&
+              Math.abs(m.timestamp - message.timestamp) < 6000)
+        );
+
+        if (pendingIdx !== -1) {
+          const updated = [...prev];
+          updated[pendingIdx] = { ...message, status: 'delivered' };
+          return updated;
+        }
+
+        return [...prev.slice(-199), { ...message, status: 'delivered' }];
+      });
 
       const isSoundActive = soundEnabledRef.current;
       const currentSender = usernameRef.current;
@@ -533,30 +577,103 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         }
 
         let emitData: unknown = payload;
+        let textContent = '';
         if (typeof payload === 'string') {
           if (!payload.trim()) {
             return resolve({ status: 'error', reason: 'Empty payload' });
           }
-          emitData = { type: 'text', text: payload.trim() };
+          textContent = payload.trim();
+          emitData = { type: 'text', text: textContent };
+        } else if (payload && typeof payload === 'object' && 'text' in payload) {
+          textContent = (payload as { text: string }).text.trim();
         }
 
-        socketRef.current.emit('send_message', emitData, (ack?: DeliveryAck) => {
-          if (ack) {
-            if (ack.status === 'ok') {
-              playSendSound(soundEnabledRef.current);
-            } else {
-              playErrorSound(soundEnabledRef.current);
-            }
+        // Sub-frame Optimistic UI: Pre-sanitize message immediately so profanity never flashes in chat
+        const tempId = 'temp-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+        const preSanitizedText = clientSanitizeMessage(textContent);
+        const optimisticMsg: ChatMessage = {
+          id: tempId,
+          tempId,
+          sender: usernameRef.current || getStoredUsername(),
+          text: preSanitizedText,
+          messageType: 'text',
+          timestamp: Date.now(),
+          isSystem: false,
+          status: 'pending',
+        };
+
+        setMessages((prev) => [...prev.slice(-199), optimisticMsg]);
+        playSendSound(soundEnabledRef.current);
+
+        const payloadToSend: SendMessagePayload = {
+          type: 'text',
+          text: textContent,
+          tempId,
+        };
+
+        socketRef.current.emit('send_message', payloadToSend, (ack?: DeliveryAck) => {
+          if (ack && ack.status === 'ok') {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId || m.tempId === tempId
+                  ? {
+                      ...m,
+                      id: ack.messageId || m.id,
+                      text: ack.sanitizedText ?? m.text,
+                      status: 'delivered',
+                      timestamp: ack.timestamp || m.timestamp,
+                    }
+                  : m
+              )
+            );
             resolve(ack);
           } else {
-            playSendSound(soundEnabledRef.current);
-            resolve({ status: 'ok', timestamp: Date.now() });
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId || m.tempId === tempId ? { ...m, status: 'failed' } : m
+              )
+            );
+            playErrorSound(soundEnabledRef.current);
+            resolve(ack || { status: 'error', reason: 'Transmission failed' });
           }
         });
       });
     },
     [isRateLimited]
   );
+
+  const retryMessage = useCallback((failedMsg: ChatMessage) => {
+    if (!socketRef.current?.connected || !failedMsg.text) return;
+    setMessages((prev) =>
+      prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'pending' } : m))
+    );
+    socketRef.current.emit(
+      'send_message',
+      { type: 'text', text: failedMsg.text, tempId: failedMsg.id },
+      (ack?: DeliveryAck) => {
+        if (ack && ack.status === 'ok') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === failedMsg.id
+                ? {
+                    ...m,
+                    id: ack.messageId || m.id,
+                    text: ack.sanitizedText ?? m.text,
+                    status: 'delivered',
+                    timestamp: ack.timestamp || m.timestamp,
+                  }
+                : m
+            )
+          );
+        } else {
+          setMessages((prev) =>
+            prev.map((m) => (m.id === failedMsg.id ? { ...m, status: 'failed' } : m))
+          );
+          playErrorSound(soundEnabledRef.current);
+        }
+      }
+    );
+  }, []);
 
   const sendImage = useCallback(
     (dataUrl: string, caption?: string): Promise<DeliveryAck> => {
@@ -570,28 +687,115 @@ export function SocketProvider({ children }: { children: ReactNode }) {
           return resolve({ status: 'error', reason: 'Rate limited' });
         }
 
+        const tempId = 'temp-img-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+        const preSanitizedCaption = caption?.trim() ? clientSanitizeMessage(caption.trim()) : undefined;
+        const optimisticMsg: ChatMessage = {
+          id: tempId,
+          tempId,
+          sender: usernameRef.current || getStoredUsername(),
+          text: preSanitizedCaption || '',
+          caption: preSanitizedCaption,
+          messageType: 'image',
+          imageDataUrl: dataUrl,
+          timestamp: Date.now(),
+          isSystem: false,
+          status: 'pending',
+        };
+
+        setMessages((prev) => [...prev.slice(-199), optimisticMsg]);
+        playSendSound(soundEnabledRef.current);
+
         const payload: SendMessagePayload = {
           type: 'image',
           dataUrl,
           caption: caption?.trim() || undefined,
+          tempId,
         };
 
         socketRef.current.emit('send_message', payload, (ack?: DeliveryAck) => {
-          if (ack) {
-            if (ack.status === 'ok') {
-              playSendSound(soundEnabledRef.current);
-            } else {
-              playErrorSound(soundEnabledRef.current);
-            }
+          if (ack && ack.status === 'ok') {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId || m.tempId === tempId
+                  ? {
+                      ...m,
+                      id: ack.messageId || m.id,
+                      text: ack.sanitizedText ?? m.text,
+                      caption: ack.sanitizedText ?? m.caption,
+                      status: 'delivered',
+                      timestamp: ack.timestamp || m.timestamp,
+                    }
+                  : m
+              )
+            );
             resolve(ack);
           } else {
-            playSendSound(soundEnabledRef.current);
-            resolve({ status: 'ok', timestamp: Date.now() });
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempId || m.tempId === tempId ? { ...m, status: 'failed' } : m
+              )
+            );
+            playErrorSound(soundEnabledRef.current);
+            resolve(ack || { status: 'error', reason: 'Image delivery failed' });
           }
         });
       });
     },
     [isRateLimited]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      socket,
+      connectionStatus,
+      wakingElapsedSeconds,
+      retryConnection,
+      latencyMs: globalLatency,
+      username,
+      setUsername,
+      rooms,
+      activeRoom,
+      messages,
+      rateLimitNotice,
+      isRateLimited,
+      rateLimitProgress,
+      clockSkewMs,
+      evaporatedNotice,
+      clearEvaporatedNotice,
+      createRoom,
+      joinRoom,
+      leaveRoom,
+      sendMessage,
+      sendImage,
+      requestRoomList,
+      clearRateLimitNotice,
+      retryMessage,
+    }),
+    [
+      socket,
+      connectionStatus,
+      wakingElapsedSeconds,
+      retryConnection,
+      username,
+      setUsername,
+      rooms,
+      activeRoom,
+      messages,
+      rateLimitNotice,
+      isRateLimited,
+      rateLimitProgress,
+      clockSkewMs,
+      evaporatedNotice,
+      clearEvaporatedNotice,
+      createRoom,
+      joinRoom,
+      leaveRoom,
+      sendMessage,
+      sendImage,
+      requestRoomList,
+      clearRateLimitNotice,
+      retryMessage,
+    ]
   );
 
   if (process.env.NODE_ENV === 'development' && !RAW_SERVER_URL) {
@@ -613,33 +817,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <SocketContext.Provider
-      value={{
-        socket,
-        connectionStatus,
-        wakingElapsedSeconds,
-        retryConnection,
-        latencyMs,
-        username,
-        setUsername,
-        rooms,
-        activeRoom,
-        messages,
-        rateLimitNotice,
-        isRateLimited,
-        rateLimitProgress,
-        clockSkewMs,
-        evaporatedNotice,
-        clearEvaporatedNotice,
-        createRoom,
-        joinRoom,
-        leaveRoom,
-        sendMessage,
-        sendImage,
-        requestRoomList,
-        clearRateLimitNotice,
-      }}
-    >
+    <SocketContext.Provider value={contextValue}>
       {children}
     </SocketContext.Provider>
   );

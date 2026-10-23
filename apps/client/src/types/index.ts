@@ -38,6 +38,8 @@ export interface ChatMessage {
   messageType?: MessageContentType;
   imageDataUrl?: string;
   caption?: string;
+  status?: 'pending' | 'delivered' | 'failed';
+  tempId?: string;
 }
 
 export interface ActiveRoomState {
@@ -58,7 +60,14 @@ export interface RateLimitNotice {
 export type ConnectionStatus = 'connecting' | 'waking' | 'connected' | 'reconnecting' | 'offline';
 
 export type DeliveryAck =
-  | { status: 'ok'; timestamp: number; messageId?: string }
+  | {
+      status: 'ok';
+      timestamp: number;
+      messageId?: string;
+      tempId?: string;
+      sanitizedText?: string;
+      processingTimeMs?: number;
+    }
   | { status: 'error'; reason: string };
 
 export interface RoomOperationResult {
@@ -82,8 +91,8 @@ export interface RoomInfoUpdatePayload {
 }
 
 export type SendMessagePayload =
-  | { type: 'text'; text: string }
-  | { type: 'image'; dataUrl: string; caption?: string };
+  | { type: 'text'; text: string; tempId?: string }
+  | { type: 'image'; dataUrl: string; caption?: string; tempId?: string };
 
 export function isValidTTL(val: unknown): val is TTLMinutes {
   return val === null || val === undefined || val === 5 || val === 15 || val === 60;

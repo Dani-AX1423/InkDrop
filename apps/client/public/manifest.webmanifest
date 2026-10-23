@@ -1,0 +1,23 @@
+{
+  "name": "InkDrop — Ephemeral Real-Time Pools",
+  "short_name": "InkDrop",
+  "description": "Anonymous, ephemeral real-time communication pools living purely in volatile memory.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05070C",
+  "theme_color": "#05070C",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ]
+}

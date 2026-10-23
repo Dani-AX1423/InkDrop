@@ -32,6 +32,11 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
 
+  /* Page Cursor Glow ("Water Light") */
+  --page-glow-size: clamp(480px, 45vw, 640px);
+  --glow-page-core: rgba(45, 212, 191, 0.12);
+  --glow-page-edge: rgba(91, 91, 255, 0.06);
+
   /* Fluid Spacing Scale */
   --space-hero-gap: clamp(24px, 4vw, 56px);
   --space-section-gap: clamp(32px, 5vw, 80px);
@@ -52,6 +57,10 @@ html.light {
   --ink-indigo: #4338CA;
   --ink-teal: #0F766E;
   --ink-rose: #BE123C;
+
+  /* Page Cursor Glow Light Mode */
+  --glow-page-core: rgba(13, 148, 136, 0.07);
+  --glow-page-edge: rgba(79, 70, 229, 0.04);
 }
 
 html {
@@ -427,4 +436,49 @@ html.light body {
     0% { opacity: 0.35; }
     100% { opacity: 0; }
   }
+
+  .page-cursor-glow-container {
+    display: none !important;
+  }
+}
+
+/* Page Cursor Glow ("Water Light") */
+.page-cursor-glow-blob {
+  width: var(--page-glow-size);
+  height: var(--page-glow-size);
+  margin-left: calc(var(--page-glow-size) * -0.5);
+  margin-top: calc(var(--page-glow-size) * -0.5);
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle closest-side,
+    var(--glow-page-core) 0%,
+    var(--glow-page-edge) 45%,
+    transparent 70%
+  );
+}
+
+@media (hover: none), (pointer: coarse) {
+  .page-cursor-glow-container {
+    display: none !important;
+  }
+}
+
+/* Low Effects Mode (manual toggle or auto-triggered on frame drops <45fps) */
+html.low-effects .page-cursor-glow-container,
+html.low-effects .click-ripple-wrapper,
+html.low-effects .idle-ripple-wrapper,
+html.low-effects #ink-ripple-layer {
+  display: none !important;
+}
+
+html.low-effects * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Pause background drift animations during heavy typing or scrolling */
+body.user-typing .animate-ink-drift,
+body.user-scrolling .animate-ink-drift {
+  animation-play-state: paused !important;
 }

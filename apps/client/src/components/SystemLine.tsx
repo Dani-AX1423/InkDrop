@@ -18,7 +18,7 @@ export function SystemLine({ message }: SystemLineProps) {
   return (
     <div className={`my-3.5 flex justify-center ${isEvaporated ? 'animate-ink-vapor' : 'animate-ink-drop'}`}>
       <div
-        className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-mono border backdrop-blur-sm transition-all ${
+        className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1 text-[11px] font-mono border backdrop-blur-sm transition-colors duration-150 ${
           isWarning
             ? 'border-ink-amber/35 bg-ink-amber/15 text-ink-amber'
             : isEvaporated
