@@ -3,28 +3,77 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useIdleRipples } from '../hooks/useIdleRipples';
+import { useSettings } from '../hooks/useSettings';
 
 export function InkBackground() {
+  const { lowEffectsMode } = useSettings();
   const [isTabVisible, setIsTabVisible] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [isLowPowerDevice, setIsLowPowerDevice] = useState(false);
   const rippleContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setMounted(true);
+    if (typeof navigator !== 'undefined') {
+      const concurrency = navigator.hardwareConcurrency ?? 8;
+      const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory ?? 8;
+      setIsLowPowerDevice(concurrency <= 4 || memory <= 4);
+    }
+    if (typeof window !== 'undefined') {
+      if ('requestIdleCallback' in window) {
+        const id = (window as unknown as { requestIdleCallback: (cb: () => void) => number }).requestIdleCallback(() => {
+          setMounted(true);
+        });
+        return () => {
+          (window as unknown as { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id);
+        };
+      } else {
+        const timer = setTimeout(() => setMounted(true), 150);
+        return () => clearTimeout(timer);
+      }
+    }
   }, []);
 
   // Activate organic ambient idle ripples across empty areas of the screen
   useIdleRipples(rippleContainerRef);
 
-  // Pause background animations when tab is not visible
+  // Pause background animations when tab is not visible or during heavy scrolling/typing
   useEffect(() => {
     const handleVisibilityChange = () => {
       setIsTabVisible(!document.hidden);
     };
 
+    let scrollTimeout: NodeJS.Timeout | null = null;
+    let keyTimeout: NodeJS.Timeout | null = null;
+
+    const handleScroll = () => {
+      document.body.classList.add('user-scrolling');
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        document.body.classList.remove('user-scrolling');
+      }, 250);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === 'TEXTAREA' || target.tagName === 'INPUT')) {
+        document.body.classList.add('user-typing');
+        if (keyTimeout) clearTimeout(keyTimeout);
+        keyTimeout = setTimeout(() => {
+          document.body.classList.remove('user-typing');
+        }, 400);
+      }
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('keydown', handleKeyDown, { passive: true });
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('keydown', handleKeyDown);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      if (keyTimeout) clearTimeout(keyTimeout);
     };
   }, []);
 
@@ -129,15 +178,20 @@ export function InkBackground() {
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 -z-50 overflow-hidden bg-water-deep select-none"
+        style={{ transform: 'translateZ(0)', willChange: 'transform' }}
       >
         {/* Deep water base vertical gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#070b14] via-[#05070C] to-[#040508] dark:block hidden" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#FAFBFD] via-[#F4F6F9] to-[#E9EEF5] dark:hidden block" />
 
-        {/* Darkened off-center ink pigment blob in top-right (scaled down on mobile for high FPS) */}
-        {isTabVisible && (
+        {/* Darkened off-center ink pigment blob in top-right (scaled down on low-power devices for high FPS) */}
+        {isTabVisible && !lowEffectsMode && (
           <div
-            className="absolute -top-16 -right-16 h-[200px] w-[200px] sm:h-[280px] sm:w-[280px] md:h-[400px] md:w-[400px] max-w-[40vw] max-h-[40vh] rounded-full opacity-18 blur-[60px] md:blur-[110px] pointer-events-none animate-ink-drift"
+            className={`absolute -top-16 -right-16 rounded-full opacity-18 pointer-events-none animate-ink-drift ${
+              isLowPowerDevice
+                ? 'h-[180px] w-[180px] blur-[40px]'
+                : 'h-[200px] w-[200px] sm:h-[280px] sm:w-[280px] md:h-[400px] md:w-[400px] blur-[60px] md:blur-[110px]'
+            } max-w-[40vw] max-h-[40vh]`}
             style={{
               background:
                 'radial-gradient(circle at 45% 45%, #1B1B4B 0%, #0F3B44 55%, rgba(5,7,12,0) 80%)',
@@ -146,8 +200,8 @@ export function InkBackground() {
           />
         )}
 
-        {/* Secondary deep wine wash in bottom-left (hidden below 768px to reduce mobile GPU fill-rate) */}
-        {isTabVisible && (
+        {/* Secondary deep wine wash in bottom-left (hidden on mobile and low-power devices to reduce fill-rate) */}
+        {isTabVisible && !lowEffectsMode && !isLowPowerDevice && (
           <div
             className="hidden md:block absolute -bottom-20 -left-20 h-[340px] w-[340px] max-w-[35vw] max-h-[35vh] rounded-full opacity-12 blur-[100px] pointer-events-none animate-ink-drift"
             style={{

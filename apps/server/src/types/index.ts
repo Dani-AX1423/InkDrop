@@ -38,6 +38,8 @@ export interface ChatMessage {
   messageType?: MessageContentType;
   imageDataUrl?: string;
   caption?: string;
+  status?: 'pending' | 'delivered' | 'failed';
+  tempId?: string;
 }
 
 export interface CreateRoomPayload {
@@ -54,8 +56,8 @@ export interface JoinRoomPayload {
 }
 
 export type SendMessagePayload =
-  | { type: 'text'; text: string }
-  | { type: 'image'; dataUrl: string; caption?: string };
+  | { type: 'text'; text: string; tempId?: string }
+  | { type: 'image'; dataUrl: string; caption?: string; tempId?: string };
 
 export interface RateLimitErrorPayload {
   code: 429;
@@ -64,7 +66,14 @@ export interface RateLimitErrorPayload {
 }
 
 export type DeliveryAck =
-  | { status: 'ok'; timestamp: number; messageId?: string }
+  | {
+      status: 'ok';
+      timestamp: number;
+      messageId?: string;
+      tempId?: string;
+      sanitizedText?: string;
+      processingTimeMs?: number;
+    }
   | { status: 'error'; reason: string };
 
 export interface RoomOperationResult {

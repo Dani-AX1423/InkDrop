@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Lock, ArrowRight, Clock } from 'lucide-react';
+import React, { useRef, memo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import { Lock, Unlock, ArrowRight, Clock } from 'lucide-react';
 import { PublicRoomInfo } from '../types';
 import { PopulationDots } from './PopulationDots';
+import { Badge } from './ui/Badge';
 import { useSocket } from '../hooks/useSocket';
 
 interface PoolCardProps {
@@ -11,21 +13,41 @@ interface PoolCardProps {
   onEnter: (room: PublicRoomInfo) => void;
 }
 
-export function PoolCard({ room, onEnter }: PoolCardProps) {
+export const PoolCard = memo(function PoolCard({ room, onEnter }: PoolCardProps) {
+  const router = useRouter();
   const { connectionStatus } = useSocket();
   const isConnected = connectionStatus === 'connected';
 
-  const [hovered, setHovered] = useState(false);
-  const [ripplePos, setRipplePos] = useState<{ x: number; y: number } | null>(null);
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const cachedRectRef = useRef<DOMRect | null>(null);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseEnter = useCallback(() => {
     if (cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      setRipplePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
+      cachedRectRef.current = cardRef.current.getBoundingClientRect();
+    }
+    router.prefetch(`/room/${room.id}`);
+  }, [router, room.id]);
+
+  const handleFocus = useCallback(() => {
+    router.prefetch(`/room/${room.id}`);
+  }, [router, room.id]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    if (!cachedRectRef.current) {
+      cachedRectRef.current = cardRef.current.getBoundingClientRect();
+    }
+    const rect = cachedRectRef.current;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    cardRef.current.style.setProperty('--card-mouse-x', `${x}px`);
+    cardRef.current.style.setProperty('--card-mouse-y', `${y}px`);
+  }, []);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if ((e.key === 'Enter' || e.key === ' ') && isConnected) {
+      e.preventDefault();
+      onEnter(room);
     }
   };
 
@@ -39,72 +61,87 @@ export function PoolCard({ room, onEnter }: PoolCardProps) {
   return (
     <div
       ref={cardRef}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => {
-        setHovered(false);
-        setRipplePos(null);
-      }}
+      role="button"
+      tabIndex={isConnected ? 0 : -1}
+      data-glow-card="true"
+      aria-label={`Enter pool ${room.name}. ${isLocked ? 'Locked with passcode.' : 'Open pool.'} ${room.userCount} occupants.`}
+      onMouseEnter={handleMouseEnter}
+      onFocus={handleFocus}
       onMouseMove={handleMouseMove}
+      onKeyDown={handleKeyDown}
       onClick={() => {
         if (isConnected) onEnter(room);
       }}
-      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-surface-border bg-surface-base/85 p-5 sm:p-6 backdrop-blur-md transition-all duration-200 shadow-sm min-h-[140px] ${
-        isConnected ? 'hover-lift hover:border-surface-border-hover cursor-pointer active:scale-[0.98]' : 'cursor-not-allowed opacity-80'
+      className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-surface-border bg-surface-base/85 p-5 sm:p-6 backdrop-blur-md transition-colors transition-transform transition-opacity duration-150 shadow-sm min-h-[148px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-indigo focus-visible:ring-offset-2 focus-visible:ring-offset-water-deep ${
+        isConnected
+          ? 'hover-lift hover:border-surface-border-hover cursor-pointer active:scale-[0.98]'
+          : 'cursor-not-allowed opacity-75'
       }`}
     >
       {/* Corner Bleed: Subtle atmospheric tint */}
       <div
-        className={`pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full transition-all duration-500 blur-2xl ${
+        className={`pointer-events-none absolute -top-12 -right-12 h-32 w-32 rounded-full transition-colors transition-opacity duration-300 blur-2xl ${
           isLocked
             ? 'bg-ink-rose/12 group-hover:bg-ink-rose/20'
             : 'bg-ink-indigo/12 group-hover:bg-ink-indigo/20'
         }`}
+        aria-hidden="true"
       />
 
-      {/* Mouse hover ambient ripple highlight */}
-      {hovered && ripplePos && isConnected && (
+      {/* Mouse hover ambient ripple highlight via CSS vars (zero React re-renders) */}
+      {isConnected && (
         <div
-          className="pointer-events-none absolute h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-15 blur-xl transition-opacity duration-300"
+          className="pointer-events-none absolute h-28 w-28 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover:opacity-15 blur-xl transition-opacity duration-200"
           style={{
-            left: ripplePos.x,
-            top: ripplePos.y,
+            left: 'var(--card-mouse-x, -999px)',
+            top: 'var(--card-mouse-y, -999px)',
             background: isLocked ? '#FF4D8D' : '#5B5BFF',
           }}
+          aria-hidden="true"
         />
       )}
 
       {/* Top Header Row */}
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-paper-white group-hover:text-white transition-colors truncate">
+          <h3 className="font-display text-xl sm:text-2xl font-bold tracking-tight text-paper-white group-hover:text-ink-indigo transition-colors truncate">
             {room.name}
           </h3>
           <div className="mt-1.5 flex items-center">
-            <span className="inline-block -rotate-1 font-mono text-[10px] px-1.5 py-0.5 rounded border border-dashed border-surface-border text-paper-muted/80 bg-surface-elevated/40 tracking-wider">
+            <span className="inline-block font-mono text-[10px] px-1.5 py-0.5 rounded border border-dashed border-surface-border text-paper-muted bg-surface-elevated/40 tracking-wider">
               {room.id}
             </span>
           </div>
         </div>
 
-        {/* Status Indicators */}
-        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+        {/* Status Badges */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end shrink-0">
           {remainingMinutes !== null && (
-            <span className="inline-flex items-center gap-1 rounded-md border border-ink-indigo/30 bg-ink-indigo/10 px-2 py-0.5 text-[10px] font-mono text-paper-white">
-              <Clock className="h-2.5 w-2.5 text-ink-indigo" strokeWidth={1.5} />
-              <span>{remainingMinutes}m</span>
-            </span>
+            <Badge
+              variant="indigo"
+              size="sm"
+              icon={<Clock className="h-3 w-3 text-ink-indigo" strokeWidth={1.5} />}
+            >
+              {remainingMinutes}m
+            </Badge>
           )}
 
           {isLocked ? (
-            <span className="inline-flex items-center gap-1 rounded-md border border-ink-rose/30 bg-ink-rose/10 px-2 py-0.5 text-[10px] font-mono text-ink-rose">
-              <Lock className="h-2.5 w-2.5" strokeWidth={1.5} />
-              <span>locked</span>
-            </span>
+            <Badge
+              variant="rose"
+              size="sm"
+              icon={<Lock className="h-3 w-3 text-ink-rose" strokeWidth={1.5} />}
+            >
+              locked
+            </Badge>
           ) : (
-            <span className="inline-flex items-center gap-1 rounded-md border border-ink-teal/30 bg-ink-teal/10 px-2 py-0.5 text-[10px] font-mono text-ink-teal">
-              <span className="h-1.5 w-1.5 rounded-full bg-ink-teal" />
-              <span>open</span>
-            </span>
+            <Badge
+              variant="teal"
+              size="sm"
+              icon={<Unlock className="h-3 w-3 text-ink-teal" strokeWidth={1.5} />}
+            >
+              open
+            </Badge>
           )}
         </div>
       </div>
@@ -114,7 +151,7 @@ export function PoolCard({ room, onEnter }: PoolCardProps) {
         {/* Population as Organic Ink Dots */}
         <div className="flex items-center gap-2">
           <PopulationDots count={room.userCount} />
-          <span className="font-body text-xs text-paper-muted">
+          <span className="font-body text-xs text-paper-muted select-none">
             {room.userCount} {room.userCount === 1 ? 'person' : 'people'}
           </span>
         </div>
@@ -122,18 +159,17 @@ export function PoolCard({ room, onEnter }: PoolCardProps) {
         {/* Enter Action Button */}
         <button
           type="button"
+          tabIndex={-1}
           disabled={!isConnected}
-          title={!isConnected ? 'Connecting to server...' : 'Enter pool'}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isConnected) onEnter(room);
-          }}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-surface-elevated text-paper-white hover:bg-ink-indigo hover:text-white transition-all select-none border border-surface-border hover:border-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-medium bg-surface-elevated text-paper-white group-hover:bg-ink-indigo group-hover:text-white transition-colors select-none border border-surface-border group-hover:border-transparent pointer-events-none"
         >
           <span>Enter</span>
-          <ArrowRight className="h-3 w-3 transition-transform duration-150 group-hover:translate-x-0.5" strokeWidth={1.5} />
+          <ArrowRight
+            className="h-3.5 w-3.5 transition-transform duration-150 group-hover:translate-x-0.5"
+            strokeWidth={1.5}
+          />
         </button>
       </div>
     </div>
   );
-}
+});

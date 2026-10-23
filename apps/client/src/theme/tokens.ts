@@ -41,7 +41,15 @@ export const INK_COLORS = {
   paperWhite: '#EDE8DC',
   paperMuted: '#7F8CA3',
   paperFaint: '#4A5568',
+
+  // Page Cursor Glow ("Water Light")
+  glowPageCore: 'var(--glow-page-core)',
+  glowPageEdge: 'var(--glow-page-edge)',
 } as const;
+
+// Page cursor glow effect constants
+export const PAGE_GLOW_ENABLED = true;
+export const PAGE_GLOW_IN_ROOM = false;
 
 export const TYPOGRAPHY = {
   fontDisplay: 'var(--font-display)',

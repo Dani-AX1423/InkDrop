@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSettings } from './useSettings';
 
 export const IDLE_RIPPLES_ENABLED = true;
 
@@ -61,20 +62,22 @@ interface RecentPoint {
 
 export function useIdleRipples(containerRef: React.RefObject<HTMLDivElement | null>) {
   const pathname = usePathname();
+  const { lowEffectsMode } = useSettings();
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const recentPointsRef = useRef<RecentPoint[]>([]);
 
   useEffect(() => {
-    if (!IDLE_RIPPLES_ENABLED || typeof window === 'undefined') return;
+    if (!IDLE_RIPPLES_ENABLED || typeof window === 'undefined' || lowEffectsMode) return;
 
-    // Check prefers-reduced-motion
+    // Check prefers-reduced-motion or low power
     const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (motionQuery.matches) return;
 
-    // Disable idle background ripples on small touchscreens (<640px) to preserve battery & high FPS
+    // Disable idle background ripples on small touchscreens (<640px) or low hardware concurrency to preserve battery & high FPS
     const isTouchSmallScreen =
       window.matchMedia('(pointer: coarse)').matches && window.innerWidth < 640;
-    if (isTouchSmallScreen) return;
+    const isLowPower = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency ?? 8) <= 4;
+    if (isTouchSmallScreen || isLowPower) return;
 
     // Determine config based on active route
     const isLobby = pathname === '/' || pathname === '';
@@ -307,5 +310,5 @@ export function useIdleRipples(containerRef: React.RefObject<HTMLDivElement | nu
         wrappers.forEach((w) => w.remove());
       }
     };
-  }, [pathname, containerRef]);
+  }, [pathname, containerRef, lowEffectsMode]);
 }

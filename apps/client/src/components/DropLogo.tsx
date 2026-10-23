@@ -20,7 +20,7 @@ export function DropLogo({ className = '', size = 28 }: DropLogoProps) {
     >
       {/* Background soft ink bloom */}
       <div
-        className={`absolute inset-0 rounded-full bg-ink-indigo/25 blur-md transition-all duration-500 ${
+        className={`absolute inset-0 rounded-full bg-ink-indigo/25 blur-md transition-opacity duration-300 ${
           isHovered ? 'scale-150 opacity-100 bg-ink-indigo/40' : 'scale-90 opacity-60'
         }`}
       />

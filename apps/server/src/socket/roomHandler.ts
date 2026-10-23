@@ -17,18 +17,37 @@ import {
 } from '../types/index.js';
 
 /**
- * Broadcasts active public room directory to target socket or entire mesh
+ * Broadcasts active public room directory to target socket or entire mesh.
+ * Coalesces bursts into one broadcast update per ~250ms.
  */
+let broadcastThrottleTimer: NodeJS.Timeout | null = null;
+let isBroadcastPending = false;
+
 export async function broadcastRoomList(io: Server, targetSocket?: Socket): Promise<void> {
-  try {
-    const rooms = await roomService.getPublicRooms();
-    if (targetSocket) {
+  if (targetSocket) {
+    try {
+      const rooms = await roomService.getPublicRooms();
       targetSocket.emit('room_list_update', rooms);
-    } else {
-      io.emit('room_list_update', rooms);
+    } catch (err) {
+      console.error('❌ [Gateway] Failed broadcasting room list to socket:', err);
     }
-  } catch (err) {
-    console.error('❌ [Gateway] Failed broadcasting room list:', err);
+    return;
+  }
+
+  isBroadcastPending = true;
+  if (!broadcastThrottleTimer) {
+    broadcastThrottleTimer = setTimeout(async () => {
+      broadcastThrottleTimer = null;
+      if (isBroadcastPending) {
+        isBroadcastPending = false;
+        try {
+          const rooms = await roomService.getPublicRooms();
+          io.emit('room_list_update', rooms);
+        } catch (err) {
+          console.error('❌ [Gateway] Failed broadcasting coalesced room list:', err);
+        }
+      }
+    }, 250);
   }
 }
 
@@ -261,8 +280,9 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
     'send_message',
     (
       rawPayload: string | { text: string } | SendMessagePayload,
-      ackCallback?: (ack: DeliveryAck) => void
+      ackCallback?: (ack: DeliveryAck & { processingTimeMs?: number; sanitizedText?: string; tempId?: string }) => void
     ) => {
+      const serverProcessingStart = process.hrtime.bigint();
       const roomId = socket.data.roomId as string | undefined;
       if (!roomId) {
         ackCallback?.({
@@ -272,6 +292,11 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         socket.emit('room_error', { message: 'Cannot send message: You are not in any room' });
         return;
       }
+
+      const tempId =
+        typeof rawPayload === 'object' && rawPayload !== null && 'tempId' in rawPayload
+          ? (rawPayload as { tempId?: string }).tempId
+          : undefined;
 
       // Check for image payload
       const isImagePayload =
@@ -291,7 +316,12 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
           return;
         }
 
-        const imagePayload = rawPayload as { type: 'image'; dataUrl: string; caption?: string };
+        const imagePayload = rawPayload as {
+          type: 'image';
+          dataUrl: string;
+          caption?: string;
+          tempId?: string;
+        };
         const validation = validateImageDataUrl(imagePayload.dataUrl);
 
         if (!validation.valid) {
@@ -311,6 +341,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
         // It is NEVER written to disk, server logs, or Redis.
         const messagePayload: ChatMessage = {
           id: messageId,
+          tempId,
           sender: socket.data.username || `Stranger_${socket.id.substring(0, 5)}`,
           text: sanitizedCaption,
           caption: sanitizedCaption || undefined,
@@ -322,10 +353,16 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
         io.to(roomId).emit('new_message', messagePayload);
 
+        const procNs = Number(process.hrtime.bigint() - serverProcessingStart);
+        const processingTimeMs = Math.round((procNs / 1_000_000) * 100) / 100;
+
         ackCallback?.({
           status: 'ok',
           timestamp: serverTimestamp,
           messageId,
+          tempId,
+          sanitizedText: sanitizedCaption,
+          processingTimeMs,
         });
         return;
       }
@@ -358,6 +395,7 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
       const messagePayload: ChatMessage = {
         id: messageId,
+        tempId,
         sender: socket.data.username || `Stranger_${socket.id.substring(0, 5)}`,
         text: sanitizedText,
         messageType: 'text',
@@ -367,10 +405,16 @@ export function registerRoomHandlers(io: Server, socket: Socket): void {
 
       io.to(roomId).emit('new_message', messagePayload);
 
+      const procNs = Number(process.hrtime.bigint() - serverProcessingStart);
+      const processingTimeMs = Math.round((procNs / 1_000_000) * 100) / 100;
+
       ackCallback?.({
         status: 'ok',
         timestamp: serverTimestamp,
         messageId,
+        tempId,
+        sanitizedText,
+        processingTimeMs,
       });
     }
   );
