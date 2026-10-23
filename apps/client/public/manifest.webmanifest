@@ -1,5 +1,5 @@
 {
-  "name": "InkDrop — Ephemeral Real-Time Pools",
+  "name": "InkDrop",
   "short_name": "InkDrop",
   "description": "Anonymous, ephemeral real-time communication pools living purely in volatile memory.",
   "start_url": "/",

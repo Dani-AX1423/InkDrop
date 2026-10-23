@@ -54,7 +54,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://inkdrop.vercel.app'),
   title: {
-    default: 'InkDrop — Ephemeral Real-Time Pools',
+    default: 'InkDrop',
     template: '%s | InkDrop',
   },
   description:
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     apple: [{ url: '/icon.svg' }],
   },
   openGraph: {
-    title: 'InkDrop — Ephemeral Real-Time Pools',
+    title: 'InkDrop',
     description:
       'Anonymous, ephemeral real-time communication pools living purely in volatile memory. Zero disk, pure memory.',
     siteName: 'InkDrop',
@@ -77,14 +77,14 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'InkDrop — Ephemeral Real-Time Pools',
+        alt: 'InkDrop',
       },
     ],
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'InkDrop — Ephemeral Real-Time Pools',
+    title: 'InkDrop',
     description:
       'Anonymous, ephemeral real-time communication pools living purely in volatile memory.',
     images: ['/og-image.png'],
